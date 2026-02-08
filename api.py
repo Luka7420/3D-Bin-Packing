@@ -1,5 +1,5 @@
 
-import flask, json, random
+import flask, json, random, ast
 from py3dbp import Packer, Bin, Item
 from flask_cors import cross_origin
 
@@ -29,6 +29,11 @@ def hello():
     '''
     return hello_world
 
+@app.route('/test')
+@cross_origin()
+def test_page():
+    return flask.send_from_directory('.', 'test.html')
+
 
 # get all item and box information
 @app.route("/getAllData", methods=["POST","GET"])
@@ -50,17 +55,38 @@ def mkResultAPI():
     '''
     res = {"Success": False}
     if flask.request.method == "POST":
-        q= eval(flask.request.data.decode('utf-8'))
-        if 'box' in q.keys() and 'item' in q.keys() and 'binding' in q.keys():
+        q = flask.request.get_json(silent=True)
+        if q is None:
+            raw = flask.request.data.decode('utf-8') if flask.request.data else ''
+            if raw:
+                try:
+                    q = json.loads(raw)
+                except Exception:
+                    try:
+                        q = ast.literal_eval(raw)
+                    except Exception:
+                        q = None
+        if q is None:
+            res["Reason"] = "input data err"
+            return res
+        if 'box' in q.keys() and 'item' in q.keys():
             try :
                 packer,box,binding = getBoxAndItem(q)
             except :
                 res["Reason"] = "input data err"
                 return res
             try :
+                options = q.get('options', {})
+                bigger_first = bool(options.get('bigger_first', True))
+                distribute_items = bool(options.get('distribute_items', False))
+                fix_point = bool(options.get('fix_point', True))
+                check_stable = bool(options.get('check_stable', True))
+                support_surface_ratio = float(options.get('support_surface_ratio', 0.75))
+                number_of_decimals = int(options.get('number_of_decimals', 0))
                 # calculate packing
-                packer.pack(bigger_first=True,distribute_items=False,fix_point=True,binding=binding,
-                number_of_decimals=0)
+                packer.pack(bigger_first=bigger_first,distribute_items=distribute_items,fix_point=fix_point,
+                check_stable=check_stable,support_surface_ratio=support_surface_ratio,binding=binding,
+                number_of_decimals=number_of_decimals)
                 box = packer.bins[0]
                 # make box dict
                 box_r = makeDictBox(box)
@@ -147,12 +173,15 @@ def getBoxAndItem(data):
     packer = Packer()
     # get bin data
     box_data = data["box"][0]
+    open_top = box_data.get('openTop', [1])
+    if not open_top:
+        open_top = [1]
     box = Bin(
         partno=box_data['name'],
         WHD=box_data['WHD'],
         max_weight=box_data['weight'],
         corner=box_data['coner'],
-        put_type=box_data['openTop'][0]
+        put_type=open_top[0]
         )
     packer.addBin(box)
     # get item data  TODO
@@ -179,7 +208,7 @@ def getBoxAndItem(data):
             updown = bool(i['updown']),
             color = randColor(i['color']))
         )
-    binding_data = data['binding']
+    binding_data = data.get('binding', [])
     binding = []
     if len(binding_data) != 0:
         for i in binding_data :
