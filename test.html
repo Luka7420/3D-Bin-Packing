@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D Bin Packing API Tester</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+    :root {
+      --bg-a: #f6efe4;
+      --bg-b: #dceee9;
+      --panel: #fffdf9;
+      --ink: #1f2530;
+      --muted: #5b6675;
+      --accent: #0f766e;
+      --accent-2: #b45309;
+      --line: #d8deea;
+      --error: #b91c1c;
+      --ok: #0f766e;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 0% 0%, #fff8ef 0, transparent 45%),
+        radial-gradient(circle at 100% 100%, #e6f7ef 0, transparent 40%),
+        linear-gradient(140deg, var(--bg-a), var(--bg-b));
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.7vw, 2.2rem);
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 6px 0 16px;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 8px 24px rgba(24, 35, 55, 0.08);
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+
+    .panel h3 {
+      margin-top: 14px;
+      font-size: 0.95rem;
+      color: var(--accent-2);
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(110px, 1fr));
+      gap: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    input,
+    select,
+    textarea,
+    button {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 9px;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+    }
+
+    button {
+      width: auto;
+      border: none;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+
+    button.alt {
+      background: #374151;
+    }
+
+    button.warn {
+      background: var(--accent-2);
+    }
+
+    .status {
+      margin-top: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      border: 1px solid transparent;
+    }
+
+    .status.info {
+      background: #eef5ff;
+      border-color: #cddcf9;
+    }
+
+    .status.ok {
+      background: #e9fbf5;
+      border-color: #bce8d9;
+      color: var(--ok);
+    }
+
+    .status.error {
+      background: #fff1f1;
+      border-color: #f5c5c5;
+      color: var(--error);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.82rem;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f6f8fc;
+      font-weight: 600;
+    }
+
+    .scroll {
+      max-height: 260px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+
+    pre {
+      margin: 8px 0 0;
+      background: #121721;
+      color: #d6e3ff;
+      border-radius: 10px;
+      padding: 10px;
+      overflow: auto;
+      font-size: 0.79rem;
+      line-height: 1.45;
+      font-family: "IBM Plex Mono", Consolas, monospace;
+      max-height: 320px;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .badge {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #f9fbff;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .danger-link {
+      color: var(--error);
+      cursor: pointer;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .grid {
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <h1 class="title">3D Bin Packing API Tester</h1>
+    <p class="subtitle">Create box/item payloads, choose strategy options, run <code>/calPacking</code>, and inspect fit vs unfit results.</p>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>Request Builder</h2>
+        <p class="small">This page is intended to run from <code>/test</code> on your Flask server.</p>
+
+        <div class="row">
+          <button id="loadDataBtn" class="alt" type="button">Load /getAllData</button>
+          <button id="addItemBtn" type="button">Add Item</button>
+          <button id="buildPayloadBtn" class="warn" type="button">Preview Payload</button>
+          <button id="runBtn" type="button">Run /calPacking</button>
+        </div>
+
+        <h3>Box</h3>
+        <div class="row">
+          <div style="flex:1;min-width:260px;">
+            <label for="boxTemplate">Box Template (from /getAllData)</label>
+            <select id="boxTemplate"></select>
+          </div>
+          <button id="applyBoxTemplateBtn" class="alt" type="button">Use Template</button>
+        </div>
+        <div class="grid">
+          <div>
+            <label for="boxName">Name</label>
+            <input id="boxName" value="Container A">
+          </div>
+          <div>
+            <label for="boxW">Width</label>
+            <input id="boxW" type="number" value="589">
+          </div>
+          <div>
+            <label for="boxH">Height</label>
+            <input id="boxH" type="number" value="235">
+          </div>
+          <div>
+            <label for="boxD">Depth</label>
+            <input id="boxD" type="number" value="238">
+          </div>
+          <div>
+            <label for="boxWeight">Max Weight</label>
+            <input id="boxWeight" type="number" value="28080">
+          </div>
+          <div>
+            <label for="boxCorner">Corner (coner)</label>
+            <input id="boxCorner" type="number" value="15">
+          </div>
+          <div>
+            <label for="boxOpenTop">Loading Mode</label>
+            <select id="boxOpenTop">
+              <option value="1">General (1)</option>
+              <option value="2">Open Top (2)</option>
+            </select>
+          </div>
+        </div>
+
+        <h3>Algorithm And Strategy Options</h3>
+        <div class="grid">
+          <div>
+            <label for="preset">Preset</label>
+            <select id="preset">
+              <option value="balanced">Balanced</option>
+              <option value="speed">Speed (less checks)</option>
+              <option value="stability">Stability First</option>
+              <option value="precision">Precision (decimals)</option>
+              <option value="manual">Manual</option>
+            </select>
+          </div>
+          <div>
+            <label for="optBiggerFirst">Item Ordering</label>
+            <select id="optBiggerFirst">
+              <option value="true">Bigger First</option>
+              <option value="false">Smaller First</option>
+            </select>
+          </div>
+          <div>
+            <label for="optDistribute">Distribute Across Bins</label>
+            <select id="optDistribute">
+              <option value="false">false</option>
+              <option value="true">true</option>
+            </select>
+          </div>
+          <div>
+            <label for="optFixPoint">Fix Floating Items</label>
+            <select id="optFixPoint">
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div>
+            <label for="optStable">Check Stability</label>
+            <select id="optStable">
+              <option value="true">true</option>
+              <option value="false">false</option>
+            </select>
+          </div>
+          <div>
+            <label for="optSupportRatio">Support Surface Ratio</label>
+            <input id="optSupportRatio" type="number" min="0" max="1" step="0.05" value="0.75">
+          </div>
+          <div>
+            <label for="optDecimals">Number Of Decimals</label>
+            <input id="optDecimals" type="number" min="0" max="6" value="0">
+          </div>
+        </div>
+
+        <h3>Binding Groups (optional)</h3>
+        <label for="bindingText">One group per line, comma-separated names (example: <code>ItemA,ItemB</code>)</label>
+        <textarea id="bindingText" placeholder="Wood_Table,50_Gal_Oil_Drum"></textarea>
+
+        <h3>Items</h3>
+        <div class="row">
+          <div style="flex:1;min-width:260px;">
+            <label for="itemTemplate">Item Template (from /getAllData)</label>
+            <select id="itemTemplate"></select>
+          </div>
+          <button id="addTemplateItemBtn" class="alt" type="button">Add Template Item</button>
+          <button id="clearItemsBtn" class="warn" type="button">Clear Items</button>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>W</th>
+                <th>H</th>
+                <th>D</th>
+                <th>Count</th>
+                <th>Type</th>
+                <th>Updown</th>
+                <th>Level</th>
+                <th>Loadbear</th>
+                <th>Weight</th>
+                <th>Color</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+        </div>
+        <div id="status" class="status info">Ready.</div>
+
+        <h3>Payload Preview</h3>
+        <pre id="payloadPreview">{}</pre>
+      </section>
+
+      <section class="panel">
+        <h2>Response Viewer</h2>
+        <div class="badges">
+          <span class="badge">Success: <strong id="sSuccess">-</strong></span>
+          <span class="badge">Fit Items: <strong id="sFit">-</strong></span>
+          <span class="badge">Unfit Items: <strong id="sUnfit">-</strong></span>
+          <span class="badge">Gravity: <strong id="sGravity">-</strong></span>
+        </div>
+
+        <h3>Raw Response</h3>
+        <pre id="responsePreview">{}</pre>
+
+        <h3>Fit Items</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Name</th>
+                <th>WHD</th>
+                <th>Pos</th>
+                <th>Rot</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="fitBody"></tbody>
+          </table>
+        </div>
+
+        <h3>Unfit Items</h3>
+        <div class="scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Part</th>
+                <th>Name</th>
+                <th>WHD</th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody id="unfitBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <template id="itemRowTemplate">
+    <tr>
+      <td><input data-k="name" value="Item-1"></td>
+      <td><input data-k="w" type="number" value="85"></td>
+      <td><input data-k="h" type="number" value="60"></td>
+      <td><input data-k="d" type="number" value="60"></td>
+      <td><input data-k="count" type="number" value="1" min="1"></td>
+      <td>
+        <select data-k="type">
+          <option value="1">cube (1)</option>
+          <option value="2">cylinder (2)</option>
+        </select>
+      </td>
+      <td>
+        <select data-k="updown">
+          <option value="1">true (1)</option>
+          <option value="0">false (0)</option>
+        </select>
+      </td>
+      <td>
+        <select data-k="level">
+          <option value="0">0</option>
+          <option value="1">1</option>
+        </select>
+      </td>
+      <td><input data-k="loadbear" type="number" value="100"></td>
+      <td><input data-k="weight" type="number" value="30"></td>
+      <td><input data-k="color" type="number" value="1" min="1" max="7"></td>
+      <td><button type="button" class="danger-link remove-item">remove</button></td>
+    </tr>
+  </template>
+
+  <script>
+    const els = {
+      status: document.getElementById("status"),
+      payloadPreview: document.getElementById("payloadPreview"),
+      responsePreview: document.getElementById("responsePreview"),
+      fitBody: document.getElementById("fitBody"),
+      unfitBody: document.getElementById("unfitBody"),
+      itemsBody: document.getElementById("itemsBody"),
+      itemRowTemplate: document.getElementById("itemRowTemplate"),
+      loadDataBtn: document.getElementById("loadDataBtn"),
+      addItemBtn: document.getElementById("addItemBtn"),
+      buildPayloadBtn: document.getElementById("buildPayloadBtn"),
+      runBtn: document.getElementById("runBtn"),
+      clearItemsBtn: document.getElementById("clearItemsBtn"),
+      boxTemplate: document.getElementById("boxTemplate"),
+      itemTemplate: document.getElementById("itemTemplate"),
+      addTemplateItemBtn: document.getElementById("addTemplateItemBtn"),
+      applyBoxTemplateBtn: document.getElementById("applyBoxTemplateBtn"),
+      preset: document.getElementById("preset"),
+      sSuccess: document.getElementById("sSuccess"),
+      sFit: document.getElementById("sFit"),
+      sUnfit: document.getElementById("sUnfit"),
+      sGravity: document.getElementById("sGravity"),
+    };
+
+    const serverData = {
+      box: [],
+      item: [],
+    };
+
+    function setStatus(text, kind) {
+      els.status.textContent = text;
+      els.status.className = "status " + (kind || "info");
+    }
+
+    function toInt(value, fallback) {
+      const n = Number.parseInt(value, 10);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function toFloat(value, fallback) {
+      const n = Number.parseFloat(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function toBool(value) {
+      return String(value).toLowerCase() === "true";
+    }
+
+    function addItemRow(item) {
+      const frag = els.itemRowTemplate.content.cloneNode(true);
+      const row = frag.querySelector("tr");
+      const field = (k) => row.querySelector(`[data-k="${k}"]`);
+
+      if (item) {
+        field("name").value = item.name || "Item";
+        field("w").value = item.WHD && item.WHD.length ? item.WHD[0] : 10;
+        field("h").value = item.WHD && item.WHD.length ? item.WHD[1] : 10;
+        field("d").value = item.WHD && item.WHD.length ? item.WHD[2] : 10;
+        field("count").value = item.count ?? 1;
+        field("type").value = item.type ?? 1;
+        field("updown").value = item.updown ?? 1;
+        field("level").value = item.level ?? 0;
+        field("loadbear").value = item.loadbear ?? 100;
+        field("weight").value = item.weight ?? 1;
+        field("color").value = item.color ?? 1;
+      } else {
+        const index = els.itemsBody.children.length + 1;
+        field("name").value = "Item-" + index;
+      }
+
+      row.querySelector(".remove-item").addEventListener("click", () => {
+        row.remove();
+      });
+
+      els.itemsBody.appendChild(frag);
+    }
+
+    function clearItems() {
+      els.itemsBody.innerHTML = "";
+    }
+
+    function applyPreset(name) {
+      if (name === "manual") {
+        return;
+      }
+      const values = {
+        balanced: {
+          bigger_first: "true",
+          distribute_items: "false",
+          fix_point: "true",
+          check_stable: "true",
+          support_surface_ratio: "0.75",
+          number_of_decimals: "0",
+        },
+        speed: {
+          bigger_first: "true",
+          distribute_items: "false",
+          fix_point: "false",
+          check_stable: "false",
+          support_surface_ratio: "0",
+          number_of_decimals: "0",
+        },
+        stability: {
+          bigger_first: "true",
+          distribute_items: "false",
+          fix_point: "true",
+          check_stable: "true",
+          support_surface_ratio: "0.9",
+          number_of_decimals: "0",
+        },
+        precision: {
+          bigger_first: "true",
+          distribute_items: "false",
+          fix_point: "true",
+          check_stable: "true",
+          support_surface_ratio: "0.75",
+          number_of_decimals: "2",
+        },
+      }[name];
+
+      if (!values) {
+        return;
+      }
+
+      document.getElementById("optBiggerFirst").value = values.bigger_first;
+      document.getElementById("optDistribute").value = values.distribute_items;
+      document.getElementById("optFixPoint").value = values.fix_point;
+      document.getElementById("optStable").value = values.check_stable;
+      document.getElementById("optSupportRatio").value = values.support_surface_ratio;
+      document.getElementById("optDecimals").value = values.number_of_decimals;
+    }
+
+    function parseBinding() {
+      const text = document.getElementById("bindingText").value || "";
+      return text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .map((line) => line.split(",").map((part) => part.trim()).filter(Boolean))
+        .filter((group) => group.length >= 2);
+    }
+
+    function readItemsFromTable() {
+      const rows = [...els.itemsBody.querySelectorAll("tr")];
+      return rows
+        .map((row) => {
+          const get = (k) => row.querySelector(`[data-k="${k}"]`).value;
+          return {
+            name: String(get("name") || "").trim(),
+            WHD: [toInt(get("w"), 0), toInt(get("h"), 0), toInt(get("d"), 0)],
+            count: toInt(get("count"), 1),
+            updown: toInt(get("updown"), 1),
+            type: toInt(get("type"), 1),
+            level: toInt(get("level"), 0),
+            loadbear: toInt(get("loadbear"), 0),
+            weight: toInt(get("weight"), 0),
+            color: toInt(get("color"), 1),
+          };
+        })
+        .filter((item) => item.name && item.count > 0 && item.WHD.every((n) => n > 0));
+    }
+
+    function buildPayload() {
+      const item = readItemsFromTable();
+      const payload = {
+        box: [
+          {
+            name: document.getElementById("boxName").value.trim() || "Container",
+            WHD: [
+              toInt(document.getElementById("boxW").value, 1),
+              toInt(document.getElementById("boxH").value, 1),
+              toInt(document.getElementById("boxD").value, 1),
+            ],
+            weight: toInt(document.getElementById("boxWeight").value, 1),
+            openTop: [toInt(document.getElementById("boxOpenTop").value, 1)],
+            coner: toInt(document.getElementById("boxCorner").value, 0),
+          },
+        ],
+        item,
+        binding: parseBinding(),
+        options: {
+          bigger_first: toBool(document.getElementById("optBiggerFirst").value),
+          distribute_items: toBool(document.getElementById("optDistribute").value),
+          fix_point: toBool(document.getElementById("optFixPoint").value),
+          check_stable: toBool(document.getElementById("optStable").value),
+          support_surface_ratio: toFloat(document.getElementById("optSupportRatio").value, 0.75),
+          number_of_decimals: toInt(document.getElementById("optDecimals").value, 0),
+        },
+      };
+      return payload;
+    }
+
+    function renderPayload(payload) {
+      els.payloadPreview.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    function renderRows(targetBody, rows, type) {
+      targetBody.innerHTML = "";
+      if (!rows || !rows.length) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = type === "fit" ? 6 : 4;
+        td.textContent = "No rows.";
+        tr.appendChild(td);
+        targetBody.appendChild(tr);
+        return;
+      }
+
+      rows.forEach((row) => {
+        const tr = document.createElement("tr");
+        if (type === "fit") {
+          tr.innerHTML = `
+            <td>${row.partNumber || ""}</td>
+            <td>${row.name || ""}</td>
+            <td>${Array.isArray(row.WHD) ? row.WHD.join(" x ") : ""}</td>
+            <td>${Array.isArray(row.position) ? row.position.join(", ") : ""}</td>
+            <td>${row.rotationType ?? ""}</td>
+            <td>${row.type || ""}</td>
+          `;
+        } else {
+          tr.innerHTML = `
+            <td>${row.partNumber || ""}</td>
+            <td>${row.name || ""}</td>
+            <td>${Array.isArray(row.WHD) ? row.WHD.join(" x ") : ""}</td>
+            <td>${row.weight ?? ""}</td>
+          `;
+        }
+        targetBody.appendChild(tr);
+      });
+    }
+
+    function renderResponse(data) {
+      els.responsePreview.textContent = JSON.stringify(data, null, 2);
+      const fit = data && data.data && Array.isArray(data.data.fitItem) ? data.data.fitItem : [];
+      const unfit = data && data.data && Array.isArray(data.data.unfitItem) ? data.data.unfitItem : [];
+      const gravity =
+        data && data.data && Array.isArray(data.data.box) && data.data.box[0] && Array.isArray(data.data.box[0].gravity)
+          ? data.data.box[0].gravity.join(", ")
+          : "-";
+
+      els.sSuccess.textContent = String(Boolean(data && data.Success));
+      els.sFit.textContent = String(fit.length);
+      els.sUnfit.textContent = String(unfit.length);
+      els.sGravity.textContent = gravity;
+
+      renderRows(els.fitBody, fit, "fit");
+      renderRows(els.unfitBody, unfit, "unfit");
+    }
+
+    function fillTemplates(data) {
+      serverData.box = Array.isArray(data.box) ? data.box : [];
+      serverData.item = Array.isArray(data.item) ? data.item : [];
+
+      els.boxTemplate.innerHTML = "";
+      if (serverData.box.length) {
+        serverData.box.forEach((b, i) => {
+          const o = document.createElement("option");
+          o.value = String(i);
+          o.textContent = `${b.name} | ${b.WHD ? b.WHD.join("x") : ""}`;
+          els.boxTemplate.appendChild(o);
+        });
+      } else {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "No boxes loaded";
+        els.boxTemplate.appendChild(o);
+      }
+
+      els.itemTemplate.innerHTML = "";
+      if (serverData.item.length) {
+        serverData.item.forEach((it, i) => {
+          const o = document.createElement("option");
+          o.value = String(i);
+          o.textContent = `${it.name} | ${it.WHD ? it.WHD.join("x") : ""} | count ${it.count}`;
+          els.itemTemplate.appendChild(o);
+        });
+      } else {
+        const o = document.createElement("option");
+        o.value = "";
+        o.textContent = "No items loaded";
+        els.itemTemplate.appendChild(o);
+      }
+    }
+
+    function applySelectedBoxTemplate() {
+      const index = toInt(els.boxTemplate.value, -1);
+      if (index < 0 || !serverData.box[index]) {
+        setStatus("No box template selected.", "error");
+        return;
+      }
+      const b = serverData.box[index];
+      document.getElementById("boxName").value = b.name || "Container";
+      document.getElementById("boxW").value = b.WHD && b.WHD.length ? b.WHD[0] : 1;
+      document.getElementById("boxH").value = b.WHD && b.WHD.length ? b.WHD[1] : 1;
+      document.getElementById("boxD").value = b.WHD && b.WHD.length ? b.WHD[2] : 1;
+      document.getElementById("boxWeight").value = b.weight ?? 1;
+      document.getElementById("boxCorner").value = b.coner ?? 0;
+      document.getElementById("boxOpenTop").value = Array.isArray(b.openTop) && b.openTop.length ? String(b.openTop[0]) : "1";
+      setStatus("Box template applied.", "ok");
+    }
+
+    function addSelectedItemTemplate() {
+      const index = toInt(els.itemTemplate.value, -1);
+      if (index < 0 || !serverData.item[index]) {
+        setStatus("No item template selected.", "error");
+        return;
+      }
+      addItemRow(serverData.item[index]);
+      setStatus("Item template added.", "ok");
+    }
+
+    async function loadAllData() {
+      setStatus("Loading /getAllData ...", "info");
+      try {
+        const res = await fetch("/getAllData", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await res.json();
+        if (!data || data.Success !== true) {
+          throw new Error((data && data.Reason) || "Request failed");
+        }
+
+        fillTemplates(data);
+
+        if (Array.isArray(data.box) && data.box.length) {
+          els.boxTemplate.value = "0";
+          applySelectedBoxTemplate();
+        }
+        if (Array.isArray(data.item) && data.item.length) {
+          clearItems();
+          data.item.slice(0, 3).forEach((it) => addItemRow(it));
+        }
+
+        setStatus("Loaded /getAllData. Templates are now available.", "ok");
+      } catch (err) {
+        setStatus("Failed to load /getAllData: " + err.message, "error");
+      }
+    }
+
+    async function runPacking() {
+      const payload = buildPayload();
+      if (!payload.item.length) {
+        setStatus("Add at least one valid item before running.", "error");
+        return;
+      }
+      renderPayload(payload);
+      setStatus("Running /calPacking ...", "info");
+      try {
+        const res = await fetch("/calPacking", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        renderResponse(data);
+        if (data && data.Success) {
+          setStatus("Packing request completed.", "ok");
+        } else {
+          setStatus("Packing failed: " + ((data && data.Reason) || "unknown error"), "error");
+        }
+      } catch (err) {
+        setStatus("Failed to call /calPacking: " + err.message, "error");
+      }
+    }
+
+    function init() {
+      addItemRow();
+      applyPreset("balanced");
+      renderPayload(buildPayload());
+      renderResponse({});
+      fillTemplates({ box: [], item: [] });
+
+      els.loadDataBtn.addEventListener("click", loadAllData);
+      els.addItemBtn.addEventListener("click", () => addItemRow());
+      els.buildPayloadBtn.addEventListener("click", () => {
+        const payload = buildPayload();
+        renderPayload(payload);
+        setStatus("Payload preview updated.", "info");
+      });
+      els.runBtn.addEventListener("click", runPacking);
+      els.clearItemsBtn.addEventListener("click", () => {
+        clearItems();
+        setStatus("Item rows cleared.", "info");
+      });
+      els.addTemplateItemBtn.addEventListener("click", addSelectedItemTemplate);
+      els.applyBoxTemplateBtn.addEventListener("click", applySelectedBoxTemplate);
+      els.preset.addEventListener("change", (e) => {
+        applyPreset(e.target.value);
+        setStatus("Preset applied.", "info");
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
